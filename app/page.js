@@ -91,18 +91,64 @@ export default function App(){
 }
 
 function Login({supabase}){
-  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[signup,setSignup]=useState(false),[msg,setMsg]=useState('')
-  async function submit(e){
-    e.preventDefault(); setMsg('')
-    const r=signup?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password})
-    if(r.error)setMsg(r.error.message)
-    else if(signup&&!r.data.session)setMsg('Konto erstellt. Bitte E-Mail bestätigen.')
+  const [email,setEmail]=useState('')
+  const [password,setPassword]=useState('')
+  const [signup,setSignup]=useState(false)
+  const [msg,setMsg]=useState('')
+  const [busy,setBusy]=useState(false)
+
+  function readableError(message=''){
+    const text=message.toLowerCase()
+    if(text.includes('invalid login credentials')) return 'E-Mail oder Passwort stimmt nicht – oder es existiert noch kein Konto.'
+    if(text.includes('email address')&&text.includes('invalid')) return 'Diese E-Mail-Adresse wird nicht akzeptiert. Bitte verwende deine echte E-Mail-Adresse.'
+    if(text.includes('user already registered')) return 'Für diese E-Mail existiert bereits ein Konto. Wechsle zu Anmelden.'
+    if(text.includes('password')) return 'Das Passwort muss mindestens 6 Zeichen lang sein.'
+    return message
   }
+
+  async function submit(e){
+    e.preventDefault()
+    setMsg('')
+    setBusy(true)
+
+    const result=signup
+      ? await supabase.auth.signUp({
+          email,
+          password,
+          options:{emailRedirectTo:window.location.origin}
+        })
+      : await supabase.auth.signInWithPassword({email,password})
+
+    setBusy(false)
+
+    if(result.error){
+      setMsg(readableError(result.error.message))
+      return
+    }
+
+    if(signup&&!result.data.session){
+      setMsg('Konto erstellt. Öffne jetzt die Bestätigungsmail und tippe dort auf den Link. Danach kannst du dich hier anmelden.')
+    }
+  }
+
   return <main className="login"><section>
-    <div className="logo">S</div><small>SANKASUMY WORLD</small><h1>Deine persönliche Zentrale.</h1>
-    <p>Einfach erfassen. Der Rest bleibt im Hintergrund.</p>
-    <form onSubmit={submit}><input type="email" placeholder="E-Mail" value={email} onChange={e=>setEmail(e.target.value)} required/><input type="password" minLength="6" placeholder="Passwort" value={password} onChange={e=>setPassword(e.target.value)} required/><button>Anmelden</button></form>
-    {msg&&<p className="alert">{msg}</p>}<button className="link" onClick={()=>setSignup(!signup)}>{signup?'Schon ein Konto? Anmelden':'Noch kein Konto? Erstellen'}</button>
+    <div className="logo">S</div>
+    <small>SANKASUMY WORLD</small>
+    <h1>{signup?'Konto erstellen':'Willkommen zurück.'}</h1>
+    <p>{signup?'Einmal registrieren, danach nur noch anmelden. Verwende eine echte E-Mail-Adresse.':'Melde dich mit deinem Sankasumy-World-Konto an.'}</p>
+
+    <div className="loginMode">
+      <button type="button" className={!signup?'active':''} onClick={()=>{setSignup(false);setMsg('')}}>Anmelden</button>
+      <button type="button" className={signup?'active':''} onClick={()=>{setSignup(true);setMsg('')}}>Konto erstellen</button>
+    </div>
+
+    <form onSubmit={submit}>
+      <input type="email" autoComplete="email" placeholder="Echte E-Mail-Adresse" value={email} onChange={e=>setEmail(e.target.value)} required/>
+      <input type="password" minLength="6" autoComplete={signup?'new-password':'current-password'} placeholder="Passwort · mindestens 6 Zeichen" value={password} onChange={e=>setPassword(e.target.value)} required/>
+      <button disabled={busy}>{busy?'Bitte kurz …':signup?'Konto erstellen':'Anmelden'}</button>
+    </form>
+
+    {msg&&<p className="alert">{msg}</p>}
   </section></main>
 }
 
