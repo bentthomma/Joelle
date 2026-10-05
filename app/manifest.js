@@ -5,8 +5,8 @@ export default function manifest() {
     description: 'Meine persönliche Zentrale',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f5f1e8',
-    theme_color: '#f5f1e8',
+    background_color: '#08100d',
+    theme_color: '#08100d',
     icons: [
       { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
     ]
