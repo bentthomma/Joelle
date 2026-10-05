@@ -25,7 +25,7 @@ export default function App(){
   const supabase=useMemo(()=>getSupabase(),[])
   const [session,setSession]=useState(null), [loading,setLoading]=useState(true)
   const [items,setItems]=useState([]), [tab,setTab]=useState('home'), [area,setArea]=useState(null)
-  const [add,setAdd]=useState(false), [error,setError]=useState('')
+  const [add,setAdd]=useState(false), [dockOpen,setDockOpen]=useState(false), [error,setError]=useState('')
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false)})
@@ -53,11 +53,25 @@ export default function App(){
   const open=items.filter(i=>i.type==='task'&&i.status!=='done')
   const todayItems=open.filter(i=>i.due_date&&i.due_date<=today)
   const weekItems=open.filter(i=>i.due_date&&i.due_date>=mon&&i.due_date<=sun)
+  const logs=items.filter(i=>i.type==='log')
+  const projects=items.filter(i=>i.type==='project'||i.area==='Projekte'||i.area==='Nova Bloom')
 
   return <main className="app">
-    <header>
-      <div><small>SANKASUMY WORLD</small><h1>{tab==='home'?'🏠 Home':tab==='today'?'🔥 Heute':tab==='week'?'📅 Diese Woche':'🗂 Bereiche'}</h1></div>
-      <button className="round" onClick={()=>supabase.auth.signOut()}>↗</button>
+    <header className={tab==='home'?'hubHeader':'detailHeader'}>
+      {tab!=='home'&&<button className="headBack" onClick={()=>{
+        if(tab==='areas'&&area){setArea(null)}
+        else{setArea(null);setDockOpen(false);setTab('home')}
+      }}>‹</button>}
+      <div><small>SANKASUMY WORLD</small><h1>{
+        tab==='home'?'CONTROL HUB':
+        tab==='today'?'Heute':
+        tab==='week'?'Diese Woche':
+        tab==='tasks'?'Aufgaben':
+        tab==='timeline'?'Verlauf':
+        tab==='projects'?'Projekte':
+        area||'Welten'
+      }</h1></div>
+      <button className="round" onClick={()=>supabase.auth.signOut()}>●</button>
     </header>
 
     {error&&<p className="alert" onClick={()=>setError('')}>{error}</p>}
@@ -67,13 +81,10 @@ export default function App(){
     {tab==='week'&&<List title="Diese Kalenderwoche" items={weekItems} done={done}/>}
     {tab==='areas'&&<Areas items={items} area={area} setArea={setArea} done={done}/>}
 
-    <button className="fab" onClick={()=>setAdd(true)}>＋</button>
-    <nav>
-      <Nav a={tab==='home'} t="⌂" l="Home" f={()=>{setArea(null);setTab('home')}}/>
-      <Nav a={tab==='today'} t="🔥" l="Heute" f={()=>setTab('today')}/>
-      <Nav a={tab==='week'} t="▦" l="Woche" f={()=>setTab('week')}/>
-      <Nav a={tab==='areas'} t="◫" l="Bereiche" f={()=>setTab('areas')}/>
-    </nav>
+    {tab!=='home'&&<ReturnDock open={dockOpen} onTap={()=>{
+      if(dockOpen){setArea(null);setDockOpen(false);setTab('home')}
+      else setDockOpen(true)
+    }}/>}
 
     {add&&<Add supabase={supabase} area={area} close={()=>setAdd(false)} saved={()=>{setAdd(false);load()}}/>}
   </main>
@@ -95,11 +106,34 @@ function Login({supabase}){
   </section></main>
 }
 
-function Home({items,today,week,openArea,go}){
-  return <div className="content">
-    <section className="hero"><small>DEIN ÜBERBLICK</small><h2>{today.length?`${today.length} Aufgabe${today.length===1?'':'n'} brauchen heute deine Aufmerksamkeit.`:'Heute ist nichts dringend.'}</h2><div><button onClick={()=>go('today')}>Heute <b>{today.length}</b></button><button onClick={()=>go('week')}>Woche <b>{week.length}</b></button></div></section>
-    <h2>Bereiche</h2><div className="grid">{AREAS.slice(0,8).map(([e,n])=><button key={n} onClick={()=>openArea(n)}><span>{e}</span><b>{n}</b><small>{items.filter(i=>i.area===n).length} Einträge</small></button>)}</div>
-    <h2>Zuletzt</h2><div className="rows">{items.slice(0,5).map(i=><Row key={i.id} i={i}/>)}{!items.length&&<Empty/>}</div>
+function Home({items,today,week,go,add}){
+  const openTasks=items.filter(i=>i.type==='task'&&i.status!=='done').length
+  const logs=items.filter(i=>i.type==='log').length
+  const projects=items.filter(i=>i.type==='project'||i.area==='Projekte'||i.area==='Nova Bloom').length
+  const nodes=[
+    ['✦','Heute',today.length,'today'],
+    ['▦','Woche',week.length,'week'],
+    ['◎','Welten','', 'areas'],
+    ['✓','Aufgaben',openTasks,'tasks'],
+    ['↻','Verlauf',logs,'timeline'],
+    ['◇','Projekte',projects,'projects']
+  ]
+  return <div className="controlHome">
+    <div className="systemLine"><span/> SYSTEM BEREIT</div>
+    <div className="radialInterface">
+      <div className="orbitRing ringA"/><div className="orbitRing ringB"/>
+      {nodes.map((n,i)=><button key={n[1]} className={'orbitButton orbitPos'+i} onClick={()=>go(n[3])}>
+        <span>{n[0]}</span><b>{n[1]}</b>{n[2]!==''&&<em>{n[2]}</em>}
+      </button>)}
+      <button className="mainCore" onClick={add}>
+        <small>SANKA</small><strong>＋</strong><b>ERFASSEN</b>
+      </button>
+    </div>
+    <div className="interfaceStatus">
+      <div><small>HEUTE</small><b>{today.length}</b></div>
+      <i/><div><small>OFFEN</small><b>{openTasks}</b></div>
+      <i/><div><small>STATUS</small><b className="online">ONLINE</b></div>
+    </div>
   </div>
 }
 
@@ -112,6 +146,14 @@ function List({title,items,done}){return <div className="content"><h2>{title} <e
 function Row({i,done}){return <article className={i.status==='done'?'row done':'row'}>{i.type==='task'&&<button className="check" onClick={()=>done?.(i)}>{i.status==='done'?'✓':''}</button>}<div><b>{i.title}</b><small>{i.area||label[i.type]}{i.due_date?` · ${new Date(i.due_date+'T12:00:00').toLocaleDateString('de-CH')}`:''}</small></div><span className="pill">{label[i.type]||i.type}</span></article>}
 function Empty(){return <div className="empty">○<p>Noch nichts gespeichert.</p></div>}
 function Nav({a,t,l,f}){return <button className={a?'active':''} onClick={f}><span>{t}</span><small>{l}</small></button>}
+
+function ReturnDock({open,onTap}){
+  return <button className={open?'returnDock raised':'returnDock'} onClick={onTap}>
+    <span>{open?'⌂':'⌃'}</span>
+    <b>{open?'HAUPTOVERLAY':''}</b>
+    <small>{open?'zurück zur Zentrale':''}</small>
+  </button>
+}
 
 function Add({supabase,area,close,saved}){
   const [title,setTitle]=useState(''),[type,setType]=useState('task'),[a,setA]=useState(area||''),[due,setDue]=useState(''),[notes,setNotes]=useState(''),[err,setErr]=useState('')
