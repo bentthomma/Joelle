@@ -160,3 +160,5 @@ input::placeholder,textarea::placeholder{color:#61756a}
   .radial{width:470px;height:470px}
   .orbitNode{width:98px;height:98px}
 }
+
+.loginMode{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;border:1px solid var(--lineSoft);background:#0a1511;border-radius:16px;margin:18px 0 14px}.loginMode button{border:0;background:transparent;color:var(--muted);border-radius:12px;padding:11px;font-weight:700}.loginMode button.active{background:var(--panel2);color:var(--ink);box-shadow:0 0 0 1px var(--line) inset}.login form button:disabled{opacity:.6}
