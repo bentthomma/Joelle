@@ -7,7 +7,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     title: 'Sankasumy World',
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
   },
 }
 
@@ -15,7 +15,7 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#f5f1e8',
+  themeColor: '#08100d',
 }
 
 export default function RootLayout({ children }) {
